@@ -14,6 +14,16 @@ import (
 	"unicode"
 )
 
+// Quotation specifies the output quoting mode
+type Quotation int
+
+const (
+	// Double quote output
+	Double Quotation = iota
+	// Single quote output
+	Single
+)
+
 const (
 	commitSize = 100 // Number of attributes to buffer.
 )
@@ -21,6 +31,8 @@ const (
 var (
 	// Chatty controls verbose parser output.
 	Chatty = false
+	// Quoting controls how attributes are quoted
+	Quoting = Double
 )
 
 // States that the parser  can be in at a given time.
@@ -577,10 +589,21 @@ func (t Tuple) String() (out string) {
 }
 
 func (a Attribute) String() (out string) {
+	var quote rune
+	switch Quoting {
+	case Double:
+		quote = '"'
+	case Single:
+		quote = '\''
+	default:
+		quote = '"'
+	}
+	sq := string(quote)
+
 	nf := strings.Fields(a.Name)
 	if len(nf) > 1 {
 		// Quote it
-		out += `"` + strings.ReplaceAll(a.Name, `"`, `""`) + `"`
+		out += sq + strings.ReplaceAll(a.Name, sq, sq+sq) + sq
 	} else {
 		out += a.Name
 	}
@@ -590,7 +613,7 @@ func (a Attribute) String() (out string) {
 	vf := strings.Fields(a.Value)
 	if len(vf) > 1 {
 		// Quote it
-		out += `"` + strings.ReplaceAll(a.Value, `"`, `""`) + `"`
+		out += sq + strings.ReplaceAll(a.Value, sq, sq+sq) + sq
 	} else {
 		out += a.Value
 	}

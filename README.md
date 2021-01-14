@@ -135,6 +135,8 @@ VARIABLES
 var (
 	// Chatty controls verbose parser output.
 	Chatty = false
+	// Quoting controls how attributes are quoted
+	Quoting = Double
 )
 
 TYPES
@@ -178,6 +180,15 @@ func (c *Cfg) Lookup(name string) ([]*Record, bool)
 
 func (c Cfg) String() (out string)
 
+type Quotation int
+    Quotation specifies the output quoting mode
+
+const (
+	// Double quote output
+	Double Quotation = iota
+	// Single quote output
+	Single
+)
 type Record struct {
 	Tuples
 	Map map[string]map[string][]string // Maps tuple's primary key to attribute map

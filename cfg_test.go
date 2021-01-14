@@ -175,3 +175,36 @@ func TestEmission(t *testing.T) {
 		t.Error("mismatched emissions")
 	}
 }
+
+// TestQuoting checks if quoting works as expected
+func TestQuoting(t *testing.T) {
+	path := testFile
+	f, err := os.Open(path)
+	if err != nil {
+		t.Error("could not open", path, "→", err)
+	}
+
+	c, err := Load(f)
+	if err != nil {
+		t.Error("could not load →", err)
+	}
+	Quoting = Single
+
+	var first, second strings.Builder
+	c.Emit(&first)
+	fs := first.String()
+
+	after, err := Load(strings.NewReader(fs))
+	if err != nil {
+		t.Error("could not load from single-quoted first emission")
+	}
+	after.Emit(&second)
+	ss := second.String()
+
+	if fs != ss {
+		t.Error("mismatched single-quoted emissions")
+	}
+
+	// Guard?
+	Quoting = Double
+}
