@@ -143,17 +143,25 @@ type Attribute struct {
 	Name  string // Mandatory
 	Value string // Optional
 }
-    Attribute is a name and optional value pair
+    Attribute is a name and optional value pair.
 
 func (a Attribute) String() (out string)
 
+type Attributes []*Attribute
+    Attributes is a set of attributes.
+
 type Cfg struct {
-	Records []*Record
+	Records
+	Map map[string]map[string]map[string][]string // Maps record's primary key to tuple primary keys to attribute maps
 }
     Cfg is a data structure representation of a cfg(2) file.
 
 func Load(r io.Reader) (Cfg, error)
     Load parses a cfg file and returns a complete cfg.
+
+func (c *Cfg) BuildMap() map[string]map[string]map[string][]string
+    BuildMap returns a map mapping record primary keys to tuple primary keys to
+    attribute maps.
 
 func (c Cfg) Emit(w io.Writer)
     Emit takes writes the Cfg's string representation to 'w'.
@@ -171,9 +179,14 @@ func (c *Cfg) Lookup(name string) ([]*Record, bool)
 func (c Cfg) String() (out string)
 
 type Record struct {
-	Tuples []*Tuple
+	Tuples
+	Map map[string]map[string][]string // Maps tuple's primary key to attribute map
 }
     Record represents a set of tuples which contain attributes.
+
+func (r Record) BuildMap() map[string]map[string][]string
+    BuildMap returns a mapping of tuple primary keys to the tuple's attribute
+    map.
 
 func (r Record) FlatMap() map[string]string
     FlatMap returns a map which is the union of all the record's tuples' maps.
@@ -182,30 +195,33 @@ func (r Record) FlatMap() map[string]string
 func (r *Record) Lookup(name string) ([]*Tuple, bool)
     Lookup returns cfg tuples whose primary key matches 'name'.
 
-func (r Record) Maps() []map[string]string
-    Maps returns the set of map representations of its tuples.
-
 func (r Record) PrimaryKey() string
     PrimaryKey returns the first name of the first attribute of the first tuple
     of a record.
 
 func (r Record) String() (out string)
 
+type Records []*Record
+    Records is a set of records.
+
 type Tuple struct {
-	Attributes []*Attribute
+	Attributes
+	Map map[string][]string // Maps attribute names to all values	(Generated)
 }
     Tuple represents a set of attributes which contain names and optional value
     pairs.
 
+func (t Tuple) BuildMap() map[string][]string
+    BuildMap builds a map[string]string representation of an Attribute set.
+
 func (t *Tuple) Lookup(name string) ([]*Attribute, bool)
     Lookup returns the attributes whose name matches 'name'.
-
-func (t Tuple) Map() map[string]string
-    Map returns a map[string]string representation of a tuple. Only the first
-    instance of a name is inserted.
 
 func (t Tuple) PrimaryKey() string
     PrimaryKey returns the first name of the first attribute of a tuple.
 
 func (t Tuple) String() (out string)
+
+type Tuples []*Tuple
+    Tuples is a set of tuples.
 ```

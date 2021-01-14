@@ -36,9 +36,19 @@ const (
 	dquoteend                 // Closed a "bar"
 )
 
+// Attributes is a set of attributes.
+type Attributes []*Attribute
+
+// Tuples is a set of tuples.
+type Tuples []*Tuple
+
+// Records is a set of records.
+type Records []*Record
+
 // Cfg is a data structure representation of a cfg(2) file.
 type Cfg struct {
-	Records []*Record
+	Records
+	Map map[string]map[string]map[string][]string // Maps record's primary key to tuple primary keys to attribute maps
 }
 
 // Attribute is a name and optional value pair.
@@ -49,12 +59,14 @@ type Attribute struct {
 
 // Tuple represents a set of attributes which contain names and optional value pairs.
 type Tuple struct {
-	Attributes []*Attribute
+	Attributes
+	Map map[string][]string // Maps attribute names to all values	(Generated)
 }
 
 // Record represents a set of tuples which contain attributes.
 type Record struct {
-	Tuples []*Tuple
+	Tuples
+	Map map[string]map[string][]string // Maps tuple's primary key to attribute map
 }
 
 // Lookup returns the attributes whose name matches 'name'.
@@ -75,18 +87,19 @@ func (t Tuple) PrimaryKey() string {
 	return t.Attributes[0].Name
 }
 
-// Map returns a map[string]string representation of a tuple.
-// Only the first instance of a name is inserted.
-func (t Tuple) Map() map[string]string {
-	out := make(map[string]string)
+// BuildMap builds a map[string]string representation of an Attribute set.
+func (t Tuple) BuildMap() map[string][]string {
+	out := make(map[string][]string)
 	for _, a := range t.Attributes {
-		if _, ok := out[a.Name]; ok {
-			// Entry exists
-			continue
+		if a.Value != "" {
+			out[a.Name] = append(out[a.Name], a.Value)
+		} else {
+			// Omitted value
+			out[a.Name] = []string{}
 		}
-
-		out[a.Name] = a.Value
 	}
+
+	t.Map = out
 	return out
 }
 
@@ -108,12 +121,15 @@ func (r Record) PrimaryKey() string {
 	return r.Tuples[0].PrimaryKey()
 }
 
-// Maps returns the set of map representations of its tuples.
-func (r Record) Maps() []map[string]string {
-	var out []map[string]string
+// BuildMap returns a mapping of tuple primary keys to the tuple's attribute map.
+func (r Record) BuildMap() map[string]map[string][]string {
+	out := make(map[string]map[string][]string)
+
 	for _, t := range r.Tuples {
-		out = append(out, t.Map())
+		out[t.PrimaryKey()] = t.BuildMap()
 	}
+
+	r.Map = out
 	return out
 }
 
@@ -122,13 +138,19 @@ func (r Record) Maps() []map[string]string {
 func (r Record) FlatMap() map[string]string {
 	out := make(map[string]string)
 	for _, t := range r.Tuples {
-		for n, v := range t.Map() {
+		for n, v := range t.BuildMap() {
 			if _, ok := out[n]; ok {
 				// This entry exists
 				continue
 			}
 
-			out[n] = v
+			if len(v) > 0 {
+				// Take first value
+				out[n] = v[0]
+			} else {
+				// No list, so this is empty string
+				out[n] = ""
+			}
 		}
 	}
 	return out
@@ -164,16 +186,28 @@ func (c Cfg) FlatMap() map[string]string {
 	out := make(map[string]string)
 	for _, r := range c.Records {
 		for _, t := range r.Tuples {
-			for n, v := range t.Map() {
+			for n, v := range t.BuildMap() {
 				if _, ok := out[n]; ok {
 					// This entry exists
 					continue
 				}
 
-				out[n] = v
+				out[n] = v[0]
 			}
 		}
 	}
+	return out
+}
+
+// BuildMap returns a map mapping record primary keys to tuple primary keys to attribute maps.
+func (c *Cfg) BuildMap() map[string]map[string]map[string][]string {
+	out := make(map[string]map[string]map[string][]string)
+
+	for _, r := range c.Records {
+		out[r.PrimaryKey()] = r.BuildMap()
+	}
+
+	c.Map = out
 	return out
 }
 
@@ -228,7 +262,7 @@ lines:
 		done := make(chan *Tuple)
 		commit := make(chan *Attribute, commitSize)
 		go func() {
-			tuple := &Tuple{[]*Attribute{}}
+			tuple := &Tuple{[]*Attribute{}, make(map[string][]string)}
 			for {
 				a, ok := <-commit
 				if !ok {
@@ -492,9 +526,15 @@ lines:
 
 		} else {
 			// New Record with just this tuple
-			c.Records = append(c.Records, &Record{[]*Tuple{tuple}})
+			c.Records = append(c.Records, &Record{
+				Tuples: []*Tuple{
+					tuple,
+				},
+			})
 		}
 	}
+
+	c.BuildMap()
 
 	return c, nil
 }
