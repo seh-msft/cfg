@@ -1,6 +1,6 @@
 # cfg
 
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/seh-msft/cfg)](https://pkg.go.dev/github.com/seh-msft/cfg)
+[![Go Documentation](https://godocs.io/github.com/seh-msft/cfg?status.svg)](https://godocs.io/github.com/seh-msft/cfg)
 
 Package "cfg" provides functionality for the parsing and emitting of [cfg(2)](http://man.postnix.pw/purgatorio/2/cfg) files. 
 
