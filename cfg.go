@@ -204,7 +204,13 @@ func (c Cfg) FlatMap() map[string]string {
 					continue
 				}
 
-				out[n] = v[0]
+				if len(v) > 0 {
+					// Take first value
+					out[n] = v[0]
+				} else {
+					// No list, so this is empty string
+					out[n] = ""
+				}
 			}
 		}
 	}

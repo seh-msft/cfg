@@ -10,7 +10,9 @@ import (
 )
 
 const (
-	testFile = "./test.cfg"
+	testFile    = "./test.cfg"
+	nRecords    = 15
+	nFlatTuples = 43
 )
 
 // TestLoad tests the cfg.Load method
@@ -27,12 +29,12 @@ func TestLoad(t *testing.T) {
 	}
 
 	// Test record count
-	if n := len(c.Records); n != 13 {
+	if n := len(c.Records); n != nRecords {
 		t.Error("incorrect record count, got:", n)
 	}
 
 	// Test primary keys
-	exKeys := []string{`a`, `sys`, `ipnet`, `name`, `creds`, `force`, `c`, `sentence`, `sing`, `quoted`, `test id`, `use bob's code`, `blank`}
+	exKeys := []string{`a`, `sys`, `ipnet`, `name`, `creds`, `force`, `c`, `sentence`, `sing`, `quoted`, `test id`, `use bob's code`, `blank`, `foo`, `bar`}
 	keys := c.Keys()
 
 	if len(exKeys) != len(keys) {
@@ -59,12 +61,19 @@ func TestFlatMap(t *testing.T) {
 		t.Error("could not load →", err)
 	}
 
+	// DB level flatmap
+	c.BuildMap()
+	topmap := c.FlatMap()
+	if n := len(topmap); n != nFlatTuples {
+		t.Error("CFG-level flatmap failed, size mismatch, got", n, "expected", nRecords)
+	}
+
 	creds, ok := c.Lookup("creds")
 	if !ok {
 		t.Error("Record keyed as 'creds' not found")
 	}
 
-	// Flatmap
+	// Record-level Flatmap
 	attrs := creds[0].FlatMap()
 	exAttrs := []string{`creds`, `username`, `pass`, `method`, `trust`, `known`}
 
